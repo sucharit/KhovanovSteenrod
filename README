@@ -1,0 +1,66 @@
+This is the README file for the KhovanovSteenrod program.
+
+Copyright (C) 2011,2012 Robert Lipshitz and Sucharit Sarkar.
+Contact: lipshitz@math.columbia.edu, sucharit@math.columbia.edu
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+
+**********************************
+Here is a step by step guideline on how to recompute the data. Note,
+this process will regenerate the files alldata.sage, allhom.sage and
+result.sage.
+
+-Install Sage. (Visit http://www.sagemath.org/)
+
+-Install the Sage package CHomP. (Visit
+http://www.sagemath.org/packages/experimental/)
+
+-Open a terminal, go to the directory where you have downloaded all
+the files of KhovanovSteenrod.  Henceforth, we are assuming that you
+are using a Bash shell (the other shells will be similar), and Bash is
+configured so that the command "sage" runs the program Sage.
+ 
+-Get the data tables from Knot Atlas.
+wget http://katlas.org/Data/Rolfsen.rdf.gz
+wget http://katlas.org/Data/Knots11.rdf.gz
+wget http://katlas.org/Data/Links.rdf.gz
+
+-Extract the PD-presentations.
+zgrep PD_Presentation Rolfsen.rdf.gz > knots.raw
+zgrep PD_Presentation Knots11.rdf.gz > knots11.raw
+zgrep PD_Presentation Links.rdf.gz > links.raw
+
+-Remove the unknot and the Hopf link. (Due to an unfortunate premature
+optimization, the main program main.sage does not work if the link
+diagram has an unknot or Hopf link component.)
+sed -i 1d knots.raw
+sed -i 1d links.raw
+
+-Convert the PD-presentations to our format. (This generates the file
+alldata.sage) 
+sage convert.sage
+
+-Compute Kh (over F_2) for all prime links up to 11 crossings. (This
+generates the file allhom.sage) This can be done in two ways.
+
+--Compute the homology directly; this takes a long time.
+sage computehom.sage
+
+--Extract from the Knot Atlas data.
+zgrep Integral_Khovanov Rolfsen.rdf.gz > knotshom.raw
+zgrep Integral_Khovanov Knots11.rdf.gz > knots11hom.raw
+zgrep Integral_Khovanov Links.rdf.gz > linkshom.raw
+sed -i 1d linkshom.raw
+sage extract.sage
+
+-Compute the action of Sq^1 and Sq^2 on all quantum grading where the
+width is at least 3. (This generates the file result.sage)
+./batch.sh
+This process might take forever, so we recommend using nohup.  
+nohup ./batch.sh > /dev/null 2> /dev/null < /dev/null &
+
+-Generate the LaTeX snippet from result.sage
+sage texify.sage
