@@ -18,7 +18,7 @@
 ## <http://www.gnu.org/licenses/>.
 
 
-#print "Loading KhovanovSteenrod.sage version 2.0"
+#print("Loading KhovanovSteenrod.sage version 2.0")
 
 from sage.plot.colors import rainbow
 import time
@@ -58,7 +58,7 @@ def occurs_twice(data, elt):
     if len([x for x in data if (x == elt or x == -elt)])>1:
         return True
     return False
-    
+
 def find_cycle_rep(u,V,W):
     """u is a vector in W, which is a quotient space of V. returns a vector v in V, which is a lift of u."""
     z=W.zero()#needed for quotienting
@@ -132,9 +132,9 @@ class CycList(): #Should really make this extend tuple.
     def __init__(self, data):
         self.data = data
         #UserTuple.__init__(data)
-    
+
     def __hash__(self):
-        return hash(self.data)
+        return hash(tuple(self.data))
 
     def __eq__(self, other):
         return self.data == other.data
@@ -235,7 +235,7 @@ def ladybug(start, mid, edges):
         tempns = CycList(start.data)#extra caution
     else:
         tempns = start.reflect()
-        
+
     ns = tempns.rotate(tempns.data.index(a)) #ns = "new start"
 
 
@@ -246,7 +246,7 @@ def ladybug(start, mid, edges):
             nmids.append(x.rotate(x.data.index(a)))
         else:
             temp = x.reflect()
-            nmids.append(temp.rotate(temp.data.index(a)))            
+            nmids.append(temp.rotate(temp.data.index(a)))
 
 
     #Case that one of the positively oriented intervals is nonempty.
@@ -264,7 +264,7 @@ def ladybug(start, mid, edges):
         answer[unmatched[1]]=unmatched[0]
         return (answer, 0)
 
-    #Case that both positively oriented intervals are empty.    
+    #Case that both positively oriented intervals are empty.
     else:
         #Rotate so that in (a,-b,?_1,a,-b,?_2), ?_1 is non-empty.
         if second_index(ns.data,a) == 2:
@@ -300,7 +300,7 @@ class ResolvedKnot():
     #Add some code so you can call it with lists rather than CycList's.
     def __init__(self, vertex_incidences, label = []):
         self.vertex_incidences = vertex_incidences
-        self.N = len(sum([x.data for x in vertex_incidences],[]))/2
+        self.N = len(sum([list(x.data) for x in vertex_incidences],[]))//2
         if label != []:
             self.label = tuple(label)
         if label == []:
@@ -329,10 +329,10 @@ class ResolvedKnot():
         return ResolvedKnot(new_vertex_incidences, new_label)
 
     def graph(self, return_colors = False):
-        """Returns a graph representing self. 
+        """Returns a graph representing self.
         Currently ignores whether edges are supposed to be inside or outside circles.
-        If optional value return_colors is True, returns a pair (graph, edge_colors). 
-        Then, to display, use: 
+        If optional value return_colors is True, returns a pair (graph, edge_colors).
+        Then, to display, use:
         sage: (graph, pretty_colors) = my_knot.graph(return_colors = True)
         sage: graph.plot(edge_colors = pretty_colors)
         The same information is encoded in:
@@ -367,7 +367,7 @@ class pvert():
     "A class to help me make the vertex labels in ResolvedKnot.graph() pretty."
     def __init__(self, data):
         self.data = data
-        
+
     def __hash__(self):
         return hash(self.data)
 
@@ -377,7 +377,7 @@ class pvert():
     def __eq__(self, other):
         return self.data == other.data
 
-    def __neq__(self, other):
+    def __ne__(self, other):
         return not self.__eq__(other)
 
 
@@ -410,14 +410,14 @@ def find_fly_in_soup(fly,soup):
 def populate_edges(cube):
     """
     Input: a dictionary with keys vertices of N-D hypercube (i.e., hypercube(N)[0]) and values the corresponding ResolvedKnot. i.e., the output of populate_vertices().
-    Returns: dictionary with keys edges of N-D hypercube (i.e., hypercube(N)[1]) and values: 
+    Returns: dictionary with keys edges of N-D hypercube (i.e., hypercube(N)[1]) and values:
     --('m' or 's', a, b, c, d, bijection) where a,b,c,d are the indices of the three exceptional components (obvious one repeated),
     ----'m' or 's' says whether it's a merge or a split.
     ----bijection is a bijection between the remaining (non-exceptional) components, encoded as a dictionary.
     Probably fails in some degenerate cases: unknot, Hopf link components.
     """
     #Loop through the edges:
-    N = len(cube.keys()[0])
+    N = len(next(iter(cube.keys())))
     answer = dict()
     for e in hypercube(N)[1]:
         #merge or split?
@@ -443,11 +443,12 @@ def populate_edges(cube):
         answer[e]=(move_type, a, b, c, d, bijection)
     return answer
 
-def chain_groups(cube,(t_correct,q_correct)=(0,0)):
+def chain_groups(cube, t_q_correct=(0,0)):
     """
     Input: the output of populate_vertices.
     Returns: A dictionary whose keys are pairs of integers (the bi-grading), and the value is a list of all generators in that bigrading.
     """
+    (t_correct, q_correct) = t_q_correct
     generators = dict()
     for s in cube.keys():
         for g in hypercube(cube[s].C)[0]:
@@ -467,10 +468,11 @@ def chain_maps(group,edges, print_progress = True):
     Matrix acts like: input row vector times matrix = output row vector. (v\cdot M) (Sage convention!!)
     """
     maps = dict()
+    group_keys = list(group.keys())
     #Populate matrices of correct dimensions with zeroes.
-    for k in group.keys():
+    for idx, k in enumerate(group_keys):
         if print_progress:
-            print repr(1+group.keys().index(k))+'/'+repr(len(group.keys()))
+            print(repr(idx+1)+'/'+repr(len(group_keys)))
         l=(k[0]+1,k[1])#Added l to make stuff more human-readable. SS
         if l in group.keys():
             maps[k]=matrix(GF(2),len(group[k]),len(group[l]),sparse=True)
@@ -483,25 +485,25 @@ def chain_maps(group,edges, print_progress = True):
                 if edge_type == 'm':
                     if x[a]!=1 or x[b]!=1:
                         val = (len(x)-1)*[0,] #Val will be f_{this edge}
-                        for dummy in range(0,a)+range(a+1,b)+range(b+1,len(x)):#Needed new variable name.
+                        for dummy in list(range(0,a))+list(range(a+1,b))+list(range(b+1,len(x))):#Needed new variable name.
                             val[bijection[dummy]] = x[dummy]
                         val[c] = x[a]+x[b]
                         j = group[l].index((t,tuple(val)))
-                        maps[k][i,j] = 1 # No need to add 1 to the existing value, since Kh complex is nice that way. 
+                        maps[k][i,j] = 1 # No need to add 1 to the existing value, since Kh complex is nice that way.
                 if edge_type == 's':
                     val = (len(x)+1)*[0,] #Val will be f_{this edge}
-                    for dummy in range(0,a)+range(a+1,len(x)):#Again new variable name.
+                    for dummy in list(range(0,a))+list(range(a+1,len(x))):#Again new variable name.
                         val[bijection[dummy]] = x[dummy]
                     if x[a]==1:
                         val[c] = 1
                         val[d] = 1
                         j = group[l].index((t,tuple(val)))
-                        maps[k][i,j] = 1 
+                        maps[k][i,j] = 1
                     if x[a]==0:#Two hits
                         val[c] = 0
                         val[d] = 1
                         j = group[l].index((t,tuple(val)))
-                        maps[k][i,j] = 1 
+                        maps[k][i,j] = 1
                         val[c] = 1
                         val[d] = 0
                         j = group[l].index((t,tuple(val)))
@@ -524,12 +526,11 @@ def complexes(groups,maps, print_progress = True):
             temp[q][1]=max(temp[q][1],t)
         else:
             temp[q]=[t,t]
-    
-    
-    for i in range(len(temp.keys())):
+
+    temp_keys = list(temp.keys())
+    for i, q in enumerate(temp_keys):
         if print_progress:
-            print repr(i+1)+"/"+repr(len(temp.keys()))
-        q=temp.keys()[i]
+            print(repr(i+1)+"/"+repr(len(temp_keys)))
         ans_dict=dict()
         for t in range(temp[q][0],temp[q][1]+1):
             if (t,q) in groups.keys() and (t+1,q) in groups.keys():
@@ -551,7 +552,7 @@ def complexes(groups,maps, print_progress = True):
             if type(homans[q][t])!=tuple:
                 homans[q][t]=(homans[q][t],[])
         if print_progress:
-            print repr(q)+"::: time "+repr(time.time()-start_time)
+            print(repr(q)+"::: time "+repr(time.time()-start_time))
 
 
     return (answer,homans)
@@ -564,9 +565,9 @@ def homology(groups,maps, print_progress = True):
     Outputs dictionary whose keys are the keys for groups, and value is homology information.
     """
     answer=dict()
-    for (t,q) in groups.keys():
+    for idx, (t,q) in enumerate(groups.keys()):
         if print_progress:
-            print repr(1+groups.keys().index((t,q)))+"/"+repr(len(groups.keys()))
+            print(repr(idx+1)+"/"+repr(len(groups)))
         #compute kernel
         if (t,q) in maps.keys():
             ker = kernel(maps[(t,q)])
@@ -588,8 +589,8 @@ def homology(groups,maps, print_progress = True):
             This case happens with (t,q)=(-1,-1) in R8_18 (the presentation from knotsupto10.sage).
             However, d^2 is still zero. It turns out that the implementation of kernel in Sage (<=4.7.1) is wrong!!!!
             """
-            print "Something is seriously wrong"
-            print (t,q) 
+            print("Something is seriously wrong")
+            print((t,q))
 
     return answer
 
@@ -626,42 +627,43 @@ class KnotKh():
     --chainsq2: used by sq2 for the chain-level computations.
     """
 
-    def __init__(self, data, (nplus,nminus)=(0,0), print_progress = True):
+    def __init__(self, data, nplus_nminus=(0,0), print_progress = True):
+        (nplus, nminus) = nplus_nminus
         self.data = ResolvedKnot(data.vertex_incidences)#Have to do this strange business. Resolved knot needs _call_ stuff?
         if print_progress:
-            print "Popuating vertices."
+            print("Popuating vertices.")
         self.vertices = populate_vertices(self.data)
         if print_progress:
-            print "Populating edges."
+            print("Populating edges.")
         self.edges = populate_edges(self.vertices)
         if print_progress:
-            print "Finding chain groups."
+            print("Finding chain groups.")
         self.groups = chain_groups(self.vertices,(-nminus,nplus-2*nminus))
 
         start_time=time.time()
         if print_progress:
-            print "Finding chain maps."
+            print("Finding chain maps.")
         self.maps = chain_maps(self.groups,self.edges, print_progress)
         if print_progress:
-            print "Time taken is "+repr(time.time()-start_time)
+            print("Time taken is "+repr(time.time()-start_time))
 
         start_time=time.time()
         if print_progress:
-            print "Generating chain complexes."
+            print("Generating chain complexes.")
         (self.complexes,self.newhom)=complexes(self.groups,self.maps,print_progress)
         if print_progress:
-            print "Time taken is "+repr(time.time()-start_time)
+            print("Time taken is "+repr(time.time()-start_time))
 
-        
+
         #start_time=time.time()
         #if print_progress:
-        #    print "Computing old homology."
+        #    print("Computing old homology.")
         #self.homology = homology(self.groups,self.maps,print_progress)
         #if print_progress:
-        #    print "Time taken is "+repr(time.time()-start_time)
+        #    print("Time taken is "+repr(time.time()-start_time))
 
         if print_progress:
-            print "Done computing Khovanov homology (over F_2)."
+            print("Done computing Khovanov homology (over F_2).")
 
         self.sign1_stored = dict()
         self.sign2_stored = dict()
@@ -684,7 +686,7 @@ class KnotKh():
                 if d2.rank() !=0:
                     are_we_good = False
                 if print_output:
-                    print d2.rank()
+                    print(d2.rank())
         return are_we_good
 
     def hom_rank(self):
@@ -699,29 +701,30 @@ class KnotKh():
         self.hom = dict(ranks)
         self.hom_support = [(t,q) for ((t,q),r) in ranks]
         return ranks
-        
+
     def print_hom_rank(self):
         "Prints the results of hom_rank(), nicely formatted."
         answer = self.hom_rank()
         print_rank(answer)
-        
+
 
     def __repr__(self):
         return "KNOT("+repr(self.data)+")"
 
-    def lady_map(self,(t,q),n=1, print_progress = True): 
+    def lady_map(self, tq, n=1, print_progress = True):
         """
         Computes ladybug map on bigrading (t,q). Returns True or False, depending on whether the image is zero or not in homology.
         Chooses some basis for homology at (t,q), and computes ladybug on the n-th basis element.
         Returns: True or False.
         """
+        (t, q) = tq
         if n < 1:
             raise(Exception("Homology groups indexed by positive integers; entry n="+repr(n)+" has no meaning."))
         if n > len(self.newhom[q][t][1]):
             raise(Exception("Our homology group has rank "+repr(len(self.newhom[q][t][1]))+" so can't find ladybug of element "+repr(n)))
         else: #RL: now that the "if" raises an exception, don't need the else here.
             u=self.newhom[q][t][1][n-1] #This is the cycle representative of the homology element. We want to find its lb.
-            
+
             if (t,q) in self.maps.keys() and (t+1,q) in self.maps.keys() and len(self.newhom[q][t+2][1])>0:
                 v=self.chainlady_map(u,(t,q), print_progress) #the lady_map computation at chain level. v is a cycle in bigrading (t+2,q).
                 return v in self.maps[(t+1,q)].row_space()
@@ -729,12 +732,13 @@ class KnotKh():
                 return True
 
 
-    def sq1(self,(t,q),n=0, print_progress = True, show_chain=False): 
+    def sq1(self, tq, n=0, print_progress = True, show_chain=False):
         """
         Computes Sq1 map on bigrading (t,q). Returns an element in bigrading (t+1,q).
         Chooses some basis for homology at (t,q), and computes Sq1 on the n-th basis element.
         If n=0, computes all.
         """
+        (t, q) = tq
         if n < 0:
             raise(Exception("Homology groups indexed by positive integers; entry n="+repr(n)+" has no meaning."))
         if n > len(self.newhom[q][t][1]):
@@ -749,9 +753,9 @@ class KnotKh():
                     l=l+[self.sq1((t,q),i,print_progress=print_progress),]
                 self.Sq1[(t,q)]=matrix(GF(2),l)
                 return self.Sq1[(t,q)]
-        else: 
+        else:
             u=self.newhom[q][t][1][n-1] #This is the cycle representative of the homology element. We want to find its Sq1.
-            
+
             if (t,q) in self.maps.keys() and len(self.newhom[q][t+1][1])>0:
                 v=self.chainsq1(u,(t,q), print_progress=print_progress) #the Sq1 computation at chain level. v is a cycle in bigrading (t+1,q).
 
@@ -778,18 +782,21 @@ class KnotKh():
                     return vector(GF(2),0,sparse=True)
 
 
-    def sq2_oi(self,(t,q),n=0,print_progress=True):
+    def sq2_oi(self, tq, n=0, print_progress=True):
+        (t, q) = tq
         return self.sq2_oi((t,q),n,print_progress=print_progress,type='oi') #to be backward-compatible
 
-    def sq2_io(self,(t,q),n=0,print_progress=True):
+    def sq2_io(self, tq, n=0, print_progress=True):
+        (t, q) = tq
         return self.sq2_oi((t,q),n,print_progress=print_progress,type='io') #to be backward-compatible
 
-    def sq2(self,(t,q),n=0, print_progress = True, type='oi',show_chain=False): #RL: isn't it un-natural to start with n=1 rather than n=0? (i.e., propose replacing n-1 by n later, and this 1 by 0.)
+    def sq2(self, tq, n=0, print_progress = True, type='oi', show_chain=False): #RL: isn't it un-natural to start with n=1 rather than n=0? (i.e., propose replacing n-1 by n later, and this 1 by 0.)
         """
         Computes Sq2 (out-in) on bigrading (t,q). Returns an element in bigrading (t+2,q)
         Chooses some basis for homology at (t,q), and computes Sq2 on the n-th basis element.
         Returns: pair (chain representing Sq^2 of input, homology class representing Sq^2 of input)
         """
+        (t, q) = tq
         if n < 0:
             raise(Exception("Homology groups indexed by positive integers; entry n="+repr(n)+" has no meaning."))
         if n > len(self.newhom[q][t][1]):
@@ -833,17 +840,17 @@ class KnotKh():
                     return vector(GF(2),0,sparse=True)
 
 
-    def chainlady_map(self, u, (t,q), print_progress = True):
+    def chainlady_map(self, u, tq, print_progress = True):
         """
         u is cycle in bigrading (t,q)
         returns a cycle representative for ladymap(u) in bigrading (t+2,q)
         makes some matching choice on the way
         """
-
+        (t, q) = tq
         if print_progress:
-            print "Finding the ladybugs."
+            print("Finding the ladybugs.")
         """stores stuff between generators in (t,q) and (t+2,q).
-        It is a dictionary, the value at (t,q) being 
+        It is a dictionary, the value at (t,q) being
         a matrix over GF(2), which acts on generators in grading (t,q) as row vectors."""
         if (t,q) in self.lb_stored.keys():
             lb = self.lb_stored[(t,q)]
@@ -852,7 +859,7 @@ class KnotKh():
             lb = matrix(GF(2),len(self.groups[(t,q)]),len(self.groups[(t+2,q)]),sparse=True)
             for i in range(len(self.groups[(t,q)])):
                 if print_progress:
-                    print repr(i+1)+"/"+repr(len(self.groups[(t,q)]))
+                    print(repr(i+1)+"/"+repr(len(self.groups[(t,q)])))
                 (s,x)=self.groups[(t,q)][i]
                 for (m1,m2,f) in vertices_2out(s):
                     (typ1,a1,b1,c1,d1,bij1)=self.edges[(s,m1)]
@@ -862,27 +869,28 @@ class KnotKh():
                             if (c1,d1)==(a2,b2):
                                 if x[a1]==0:#Found a ladybug configuration.
                                     val = (len(x))*[0,] #Val will be lb_{this edge}
-                                    for dummy in range(0,a1)+range(a1+1,len(x)):#Needed new variable name.
+                                    for dummy in list(range(0,a1))+list(range(a1+1,len(x))):#Needed new variable name.
                                         val[bij2[bij1[dummy]]] = x[dummy]
                                     val[c2] = 1
                                     j = self.groups[(t+2,q)].index((f,tuple(val)))
 
                                     lb[i,j]=1
 
-                            
+
             self.lb_stored[(t,q)]=lb
-                    
+
         return u*lb
 
-    def chainsq1(self, u, (t,q), print_progress=True):
+    def chainsq1(self, u, tq, print_progress=True):
         """
         u a cycle in bigrading (t,q)
         return a cycle representative for sq1(u) in bigrading (t+1,q)
         """
+        (t, q) = tq
         l=(len(self.groups[(t+1,q)]))*[0,]
 
         if print_progress:
-            print "Finding 1-sign assignments."
+            print("Finding 1-sign assignments.")
         if (t,q) in self.sign1_stored.keys():
             sign1 = self.sign1_stored[(t,q)]
         else:
@@ -915,17 +923,18 @@ class KnotKh():
 
         return v
 
-    def chainsq2(self, u, (t,q), print_progress = True,type='oi'):
+    def chainsq2(self, u, tq, print_progress = True, type='oi'):
         """
         u is cycle in bigrading (t,q)
         returns a cycle representative for sq2(u) in bigrading (t+2,q)
         makes some matching choice on the way
         """
+        (t, q) = tq
         v=vector(GF(2),(len(self.groups[(t+2,q)]))*[0,],sparse=True)
 
-        
+
         if print_progress:
-            print "Finding 1-sign assignments."
+            print("Finding 1-sign assignments.")
         if (t,q) in self.sign1_stored.keys():
             sign1 = self.sign1_stored[(t,q)]
         else:
@@ -943,7 +952,7 @@ class KnotKh():
 
 
         if print_progress:
-            print "Finding 2-sign assignments."
+            print("Finding 2-sign assignments.")
         """stores stuff between generators in (t,q) and (t+2,q).
         the keys are pairs (a,b), a gen in (t,q), b gen in (t+2,q), such that there are flowlines from a to b.
         the value is a list [s,l], where s is the additive 2-sign assignment (non-zero *only* if there are exactly 2 flowlines)
@@ -956,7 +965,7 @@ class KnotKh():
             sign2 = dict()
             for i in range(len(self.groups[(t,q)])):
                 if print_progress:
-                    print repr(i+1)+"/"+repr(len(self.groups[(t,q)]))
+                    print(repr(i+1)+"/"+repr(len(self.groups[(t,q)])))
                 vector_1 = self.maps[(t,q)][i]
 
                 (s_state,s_gen)=self.groups[(t,q)][i]
@@ -973,9 +982,9 @@ class KnotKh():
                         (a2,b2,c2,d2,bij2)=self.edges[(m_state,f_state)][1:]
 
                         temp_key=[s_gen[stuff]==f_gen[bij2[bij1[stuff]]] for stuff in bij1.keys() if not bij1[stuff] in [a2,b2]]
-                        if not False in temp_key:                      
+                        if not False in temp_key:
                             temp_jlist.append(j)
-                
+
                 for j in temp_jlist:
                     vector_2 = self.maps[(t+1,q)].transpose()[j]
                     intermediates = vector(GF(2),(len(vector_1))*[0,],sparse=True)#This will be the termwise product of vector_1 and vector_2
@@ -987,7 +996,7 @@ class KnotKh():
 
                     if len(list_intermediates) != 0:#i.e. there are broken flowlines from i to j.
                         temp=dict();sign2[(i,j)]=[0,temp]
-                            
+
                         if len(list_intermediates) == 2:
                             first = first_difference(self.groups[(t,q)][i][0],self.groups[(t+2,q)][j][0])
                             second = second_difference(self.groups[(t,q)][i][0],self.groups[(t+2,q)][j][0])
@@ -996,7 +1005,7 @@ class KnotKh():
                             sign2[(i,j)][1][list_intermediates[1]]=list_intermediates[0]
 
                         if len(list_intermediates) == 4:
-                            
+
                             """
                             We are now in ladybug situation. start is the ladybug we start with. mid is a list of 4 elements, which stores the 4 intermediate stuff. final is the final ladybug.
                             """
@@ -1004,7 +1013,7 @@ class KnotKh():
                             [start_state,mid_state,final_state]=[start_gen[0],[mid_gen[x][0] for x in range(4)],final_gen[0]]#the state s, a vertex of N-d hypercube
                             [start_onoff,mid_onoff]=[start_gen[1],[mid_gen[x][1] for x in range(4)]]#the second part of the generator, for the lack of a better name.
                             [start_resolution,mid_resolution]=[self.vertices[start_state],[self.vertices[mid_state[x]] for x in range(4)]]#the resolved knots
-                            
+
                             start_index=self.edges[(start_state,mid_state[0])][1]#the index of the circle being split
                             mid_index=[]
                             for x in range(4):#the indices of the other relevant circles (we only keep the circle that is "on")
@@ -1024,13 +1033,13 @@ class KnotKh():
                             for x in range(4):
                                 sign2[(i,j)][1][list_intermediates[x]]=list_intermediates[matching[x]]
 
-                            
+
             self.sign2_stored[(t,q)]=sign2
             if print_progress:
-                print "Time taken is "+repr(time.time()-start_time)
+                print("Time taken is "+repr(time.time()-start_time))
 
         if print_progress:
-            print "Making the local matching choice."
+            print("Making the local matching choice.")
         choice = [dict() for x in range(len(self.groups[(t+1,q)]))]#initialisation. Is is really necessary? SS.
         #Stores the local matching. It is a list of dictionaries, where the dictionary entries stores the matchings (incl. *directions*) as a tuple.
         for x in range(len(self.groups[(t+1,q)])):
@@ -1051,15 +1060,15 @@ class KnotKh():
         """Now the main definition of v"""
 
         if print_progress:
-            print "Finding Sq^2 at the chain level."
+            print("Finding Sq^2 at the chain level.")
         ssign2=deepcopy(sign2)#we are going to delete keys from sign2, and we are scared.
-        for (i,j) in ssign2.keys():
+        for (i,j) in list(ssign2.keys()):
             if u[i] == 0:
                 del ssign2[(i,j)]#only interested in things starting at the chain u
         while len(ssign2.keys())!=0:
 
-            (i,j)=ssign2.keys()[0]
-            inter=ssign2[(i,j)][1].keys()[0]#this is an intermediate vertex between i and j
+            (i,j)=next(iter(ssign2.keys()))
+            inter=next(iter(ssign2[(i,j)][1].keys()))#this is an intermediate vertex between i and j
 
             v[j]=v[j]+1#we start a new cycle (in the graph corresponding to j)
 
@@ -1070,7 +1079,7 @@ class KnotKh():
                     v[j]=v[j]+ssign2[(i,j)][0]
                 if type=='io':
                     if len(ssign2[(i,j)][1].keys())==4:
-                        v[j]=v[j]+1 #since we are doing the "other" ladybug matching                
+                        v[j]=v[j]+1 #since we are doing the "other" ladybug matching
                 inter_next=ssign2[(i,j)][1][inter]#moves according the global matching
                 del ssign2[(i,j)][1][inter]
                 del ssign2[(i,j)][1][inter_next]
@@ -1100,22 +1109,22 @@ def print_rank(answer):
     """
     (t_min,t_max) = (min([x[0][0] for x in answer]),max([x[0][0] for x in answer]))
     (q_min,q_max) = (min([x[0][1] for x in answer]),max([x[0][1] for x in answer]))
-    
-    M = matrix(ZZ,(q_max-q_min)/2+2, t_max-t_min+2,sparse=True)
-    
+
+    M = matrix(ZZ,(q_max-q_min)//2+2, t_max-t_min+2,sparse=True)
+
     for i in range(1,t_max-t_min+2):
         M[0,i]=i+t_min-1
-    for i in range(1,(q_max-q_min)/2+2):
+    for i in range(1,(q_max-q_min)//2+2):
         M[i,0]=-2*i+q_max+2
 
     for ((t,q),r) in answer:
-        M[(q_max-q)/2+1,t-t_min+1]=r
+        M[(q_max-q)//2+1,t-t_min+1]=r
 
     #this is our output matrix. Now we will replace 0's by . (but not in top row or left column)
     splitting = M.str().split('\n')
     temp = splitting[0]
     ans = temp.replace('0','.',1)
-    for i in range(1,(q_max-q_min)/2+2):
+    for i in range(1,(q_max-q_min)//2+2):
         temp = splitting[i]
         ind=temp.find(' 0')
         if ind != -1:
@@ -1126,14 +1135,14 @@ def print_rank(answer):
             else:
                 temp=almost[0]+' .'+almost[1].replace(' 0',' .')
         ans=ans+'\n'+temp
-    print ans
+    print(ans)
 
 def define_knot(name, print_progress = True):
     globals()[name]=KnotKh(eval(name+'_resolved_knot'), eval(name+'_cross'), print_progress)
 
 def compute_knot(name, print_progress = False):
     globals()['Central_Knot']=KnotKh(eval(name+'_resolved_knot'), eval(name+'_cross'),print_progress)
-    
+
 """
 DOES NOT WORK WITH UNKNOT OR HOPF LINK COMPONENTS
 """

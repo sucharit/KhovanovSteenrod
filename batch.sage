@@ -86,8 +86,8 @@ for i in range(start,univ_number):
         break
 
 if written_once:
-    print "Notdone"
+    print("Notdone")
 else:
-    print "Done"
+    print("Done")
 
 writing.close()
