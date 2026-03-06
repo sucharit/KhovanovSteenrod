@@ -22,7 +22,6 @@
 
 from sage.plot.colors import rainbow
 import time
-from sage.interfaces.chomp import homchain
 #from UserTuple import UserTuple
 
 
@@ -544,13 +543,45 @@ def complexes(groups,maps, print_progress = True):
             else:
                 ans_dict[t]=matrix(GF(2),0,0,sparse=True)
 
-        answer[q]=ChainComplex(ans_dict,base_ring=GF(2),check_products=False)
+        answer[q]=ChainComplex(ans_dict,base_ring=GF(2),check=False)
 
         start_time=time.time()
-        homans[q]=homchain(answer[q],generators=True)
-        for t in homans[q].keys():#formatting issue. if rank=0, homchain only returns a vector space.
-            if type(homans[q][t])!=tuple:
-                homans[q][t]=(homans[q][t],[])
+        homans[q]=dict()
+        for t in range(temp[q][0],temp[q][1]+1):
+            if (t,q) not in groups:
+                homans[q][t]=(VectorSpace(GF(2),0),[])
+                continue
+
+            n=len(groups[(t,q)])
+
+            # Kernel of outgoing differential (left kernel: {u row : u * M = 0})
+            if (t,q) in maps:
+                ker_vecs=list(maps[(t,q)].kernel().basis())
+            else:
+                ker_vecs=list(identity_matrix(GF(2),n).rows())
+
+            if not ker_vecs:
+                homans[q][t]=(VectorSpace(GF(2),0),[])
+                continue
+
+            # Image of incoming differential (row space of incoming map)
+            if (t-1,q) in maps:
+                im_vecs=list(maps[(t-1,q)].row_space().basis())
+            else:
+                im_vecs=[]
+
+            # Find cycle representatives for ker/im by Gaussian elimination:
+            # stack [im_vecs | ker_vecs] and take pivot rows that fall in ker section.
+            if im_vecs:
+                all_rows=im_vecs+ker_vecs
+                pivots=list(matrix(GF(2),all_rows).pivot_rows())
+                im_rank=len(im_vecs)
+                cycle_reps=[all_rows[p] for p in pivots if p>=im_rank]
+            else:
+                cycle_reps=ker_vecs
+
+            homans[q][t]=(VectorSpace(GF(2),len(cycle_reps)),cycle_reps)
+
         if print_progress:
             print(repr(q)+"::: time "+repr(time.time()-start_time))
 
