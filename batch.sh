@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ## Copyright (C) 2011, 2012 Robert Lipshitz and Sucharit Sarkar.
 ## Contact: lipshitz@math.columbia.edu, sucharit@math.columbia.edu
 
@@ -17,15 +19,28 @@
 ## along with KhovanovSteenrod; see COPYING.  If not, see
 ## <http://www.gnu.org/licenses/>.
 
+# Usage: ./batch.sh [--sage]
+#   Default: use pure Python (python batch.py)
+#   --sage:  use SageMath (sage batch.sage)
+#
+# Note: this script resets progress and starts from the beginning.
+# To resume an interrupted run, omit this script and run the inner
+# command in a loop directly:
+#   while [[ "$(python batch.py)" == *Notdone* ]]; do :; done
+#   while [[ "$(sage batch.sage)" == *Notdone* ]]; do :; done
 
-#!/bin/bash
+if [[ "$1" == "--sage" ]]; then
+    CMD="sage ./batch.sage"
+else
+    CMD="python batch.py"
+fi
 
 echo 0 > stored.txt
 
 OUT="Notdone"
 while [[ "$OUT" == *Notdone* ]]
 do
-    OUT=`sage ./batch.sage`
+    OUT=`$CMD`
 done
 
 rm stored.txt
